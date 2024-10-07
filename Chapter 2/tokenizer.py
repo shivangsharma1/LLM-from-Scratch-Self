@@ -17,7 +17,7 @@ class SimpleTokenizerV2:
         return r'([,.:;?_!"()\']|--|\s)'
     
     def encode(self, text):
-        text_preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', text)
+        text_preprocessed = re.split(SimpleTokenizerV2.regex(), text)
         preprocessed = [item.strip() for item in text_preprocessed if item.strip()]
         preprocessed = [item if item in self.str_to_int else "<|unk|>" for item in preprocessed]
         ids = [self.str_to_int[s] for s in preprocessed]
