@@ -12,10 +12,6 @@ class SimpleTokenizerV2:
         self.int_to_str = {i:s for s , i in self.str_to_int.items()}
 
     
-    @staticmethod
-    def re():
-        return re.compile(r'([,.:;?_!"()\']|--|\s)')
-    
     def encode(self, text):
         text_preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', text)
         preprocessed = [item.strip() for item in text_preprocessed if item.strip()]
@@ -38,4 +34,3 @@ if __name__ == '__main__':
     print(tokenizer.encode(text))
     print(tokenizer.decode(tokenizer.encode(text)))
 
-    
