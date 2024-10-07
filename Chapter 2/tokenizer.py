@@ -37,3 +37,5 @@ if __name__ == '__main__':
     tokenizer = SimpleTokenizerV2(data)
     print(tokenizer.encode(text))
     print(tokenizer.decode(tokenizer.encode(text)))
+
+    
