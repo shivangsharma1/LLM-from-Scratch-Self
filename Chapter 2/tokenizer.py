@@ -2,7 +2,8 @@ import re
 
 class SimpleTokenizerV2:
     def __init__(self, data):
-        data = re.split(r'([,.:;?_!"()\']|--|\s)', data)
+        # data = re.split(r'([,.:;?_!"()\']|--|\s)', data)
+        data = re.split(SimpleTokenizerV2.regex(), data)
         all_tokens = sorted(list(set(data)))
         all_tokens.extend(["<|endoftext|>", "<|unk|>"])
         preprocessed = [item.strip() for item in all_tokens if item.strip()]
@@ -10,7 +11,10 @@ class SimpleTokenizerV2:
 
         self.str_to_int = vocab
         self.int_to_str = {i:s for s , i in self.str_to_int.items()}
-
+    
+    @staticmethod
+    def regex():
+        return r'([,.:;?_!"()\']|--|\s)'
     
     def encode(self, text):
         text_preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', text)
