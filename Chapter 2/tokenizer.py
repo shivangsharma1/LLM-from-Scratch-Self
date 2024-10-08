@@ -3,7 +3,7 @@ import re
 class SimpleTokenizerV2:
     def __init__(self, data):
         # data = re.split(r'([,.:;?_!"()\']|--|\s)', data)
-        data = re.split(SimpleTokenizerV2.regex(), data)
+        data = re.split(self.regex(), data)
         all_tokens = sorted(list(set(data)))
         all_tokens.extend(["<|endoftext|>", "<|unk|>"])
         preprocessed = [item.strip() for item in all_tokens if item.strip()]
@@ -17,7 +17,7 @@ class SimpleTokenizerV2:
         return r'([,.:;?_!"()\']|--|\s)'
     
     def encode(self, text):
-        text_preprocessed = re.split(SimpleTokenizerV2.regex(), text)
+        text_preprocessed = re.split(self.regex(), text)
         preprocessed = [item.strip() for item in text_preprocessed if item.strip()]
         preprocessed = [item if item in self.str_to_int else "<|unk|>" for item in preprocessed]
         ids = [self.str_to_int[s] for s in preprocessed]
