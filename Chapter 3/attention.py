@@ -67,6 +67,36 @@ class SelfAttention_same_weight(nn.Module):
         return context_vec
 
 
+class CausalAttention(nn.Module):
+    def __init__(self, d_in, d_out):
+        super().__init__()
+
+        self.w_q = nn.Linear(d_in, d_out, bias=False)
+        self.w_k = nn.Linear(d_in, d_out, bias=False)
+        self.w_v = nn.Linear(d_in, d_out, bias=False)
+
+    def forward(self, x):
+        query = self.w_q(x)
+        key = self.w_k(x)
+        val = self.w_v(x)
+
+        #attention scores
+        attn_score = query @ key.T
+        key_dim = key.shape[-1]
+        attn_weight = torch.softmax(attn_score/(key_dim**0.5), dim = -1)
+        
+
+        #masking 
+        context_len = attn_score.shape[0]
+        mask = torch.tril(torch.ones(context_len, context_len))
+        mask_attn_weight = attn_weight @ mask
+
+        #normalizing 
+        row_sum = mask_attn_weight.sum(dim=-1, keepdim=True)
+        mask_attn_weight = mask_attn_weight / row_sum
+        context_vec = mask_attn_weight @ val
+        return context_vec
+
 
 if __name__ == '__main__':
     d_in, d_out = 5, 5
@@ -76,3 +106,8 @@ if __name__ == '__main__':
     x_in = torch.rand(5, 5)
     print("first", attn_block.forward(x_in))
     print("second", att_block_same_weight.forward(x_in))
+
+
+    #masked attention
+    causal = CausalAttention(d_in, d_out)
+    print("Causal", causal.forward(x_in))
