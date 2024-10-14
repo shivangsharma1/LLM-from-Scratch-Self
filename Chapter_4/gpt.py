@@ -1,14 +1,14 @@
+from multiprocessing import context
 import sys
-sys.path.append('/Users/Shivang/LLM from scratch/LLM-from-Scratch-Self/')
-
+from scipy import constants
+import tiktoken
+from dataclasses import dataclass
 from sympy import false
 import torch
 import torch.nn as nn
 
-# import cfg
-import tiktoken
-from dataclasses import dataclass
-
+torch.manual_seed(234)
+sys.path.append("/Users/Shivang/LLM from scratch/LLM-from-Scratch-Self/")
 from Chapter_3.mha_efficient import MultiheadAttention
 
 
@@ -22,6 +22,7 @@ class TansformersConfig:
     drop_rate: float
     qkv_bias: bool
 
+
 class Feedforward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -34,7 +35,8 @@ class Feedforward(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
-    
+
+
 class GELU(nn.Module):
     def __init__(self):
         super().__init__()
@@ -51,6 +53,7 @@ class GELU(nn.Module):
                 )
             )
         )
+
 
 class LayerNorm(nn.Module):
     def __init__(self, embed_dim, eps=1e-5):
@@ -71,15 +74,15 @@ class TransformersBlock(nn.Module):
     def __init__(self, cfg):
         super().__init__()
 
-        self.att  = MultiheadAttention(
-            d_in=cfg.emb_dim, 
-            d_out = cfg.emb_dim,
-            context_len = cfg.context_length,
-            num_heads = cfg.n_heads,
-            dropout = cfg.drop_rate,
-            bias = cfg.qkv_bias
+        self.att = MultiheadAttention(
+            d_in=cfg.emb_dim,
+            d_out=cfg.emb_dim,
+            context_len=cfg.context_length,
+            num_heads=cfg.n_heads,
+            dropout=cfg.drop_rate,
+            bias=cfg.qkv_bias,
         )
-    
+
         self.ff = Feedforward(cfg)
         self.norm1 = LayerNorm(cfg.emb_dim)
         self.norm2 = LayerNorm(cfg.emb_dim)
@@ -90,15 +93,16 @@ class TransformersBlock(nn.Module):
         x = self.norm1(x)
         x = self.att(x)
         x = self.drop_shortcut(x)
-        x = x+shortcut
+        x = x + shortcut
 
         shortcut = x
         x = self.norm2(x)
         x = self.ff(x)
         x = self.drop_shortcut(x)
-        x = x+shortcut
+        x = x + shortcut
 
         return x
+
 
 class GPTModel(nn.Module):
     def __init__(self, cfg):
@@ -131,6 +135,22 @@ class GPTModel(nn.Module):
         return logits
 
 
+def generate_text(model, idx, max_new_tokens, context_size):
+    for _ in range(max_new_tokens):
+        idx_cond = idx[:, -context_size:]
+        with torch.no_grad():
+            logits = model(idx_cond)
+
+        logits = logits[:, -1, :]
+        probs = torch.softmax(logits, dim=-1)
+        idx_next = torch.argmax(
+            probs, dim=-1, keepdim=True
+        )  # greedy approach, sicne taking the argmax of the softmax, (if only taking the argmax we can skip taking the softmax, as softmax is a monotonic function)
+        idx = torch.cat([idx, idx_next], dim=1)
+
+    return idx
+
+
 if __name__ == "__main__":
 
     contants = TansformersConfig(
@@ -152,6 +172,27 @@ if __name__ == "__main__":
 
     batch = torch.stack(batch, dim=0)
     model = GPTModel(contants)
+    model.eval()
     logits = model(batch)
-    print("Output", logits)
-    print("Logits shape", logits.shape)
+    # print("Output", logits)
+    # print("Logits shape", logits.shape)
+
+    # =====================
+    start_context = "Hello, I am"
+    encoded = tokenizer.encode(start_context)
+    encoded_tensor = torch.tensor(encoded).unsqueeze(0)
+    print("Encoded tensor: ", encoded)
+
+    out = generate_text(
+        model=model,
+        idx=encoded_tensor,
+        max_new_tokens=6,
+        context_size=contants.context_length,
+    )
+
+    print("Output: ", out)
+    print("Output Length: ", len(out[0]))
+
+    # decode text
+    decode_text = tokenizer.decode(out.squeeze(0).tolist())
+    print("Decoded text: ", decode_text)
