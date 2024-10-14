@@ -22,7 +22,9 @@ class MultiheadAttention(nn.Module):
 
         # declaration for attention calculation, defining it as register_buffer so that it moves to \
         # model current device
-        self.register_buffer("mask", torch.triu(torch.ones(context_len, context_len), diagonal=1)) #mask
+        self.register_buffer(
+            "mask", torch.triu(torch.ones(context_len, context_len), diagonal=1)
+        )  # mask
 
     def forward(self, x):
         b, token_len, d_in = x.shape
@@ -30,35 +32,33 @@ class MultiheadAttention(nn.Module):
         key = self.k(x)
         val = self.v(x)
 
-        #converting into MHA dim
+        # converting into MHA dim
         key = key.view(b, token_len, self.num_head, self.head_dim)
         query = query.view(b, token_len, self.num_head, self.head_dim)
         val = val.view(b, token_len, self.num_head, self.head_dim)
 
         # converting to channel dim
-        key = key.transpose(2, 3)
-        query = query.transpose(2, 3) 
-        val = val.transpose(2, 3)
+        key = key.transpose(1, 2)
+        query = query.transpose(1, 2)
+        val = val.transpose(1, 2)
 
-        #normal attention calculation
+        # normal attention calculation
         attn_score = query @ key.transpose(2, 3)
         mask_bool = self.mask.bool()[:token_len, :token_len]
 
-        #masking
-        atten_weight.masked_fill_(mask_bool, -torch.inf)
+        # masking
+        attn_score.masked_fill_(mask_bool, -torch.inf)
 
-        atten_weight = torch.softmax(attn_score / (key.shape[-1] ** 0.5), dim = -1)
+        atten_weight = torch.softmax(attn_score / (key.shape[-1] ** 0.5), dim=-1)
         atten_weight = self.dropout(atten_weight)
 
         context_vec = (atten_weight @ val).transpose(1, 2)
         context_vec = context_vec.contiguous().view(b, token_len, self.d_out)
 
-        #passing the vector to output projection layer to combine the heads output, so this is also a trainable layer
+        # passing the vector to output projection layer to combine the heads output, so this is also a trainable layer
         context_vec = self.out_proj(context_vec)
 
         return context_vec
-    
-
 
 
 if __name__ == "__main__":
