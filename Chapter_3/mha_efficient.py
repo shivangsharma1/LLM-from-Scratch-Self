@@ -1,24 +1,21 @@
 import torch
 import torch.nn as nn
-torch.manual_seed(123)
 
 
 class MultiheadAttention(nn.Module):
-    def __init__(self, d_in, d_out, context_len, num_heads, dropout=0.5, bias=False):
+    def __init__(self, d_in, d_out, context_len, num_heads, dropout=0.1, bias=False):
         super().__init__()
-
-        # to split the d_out dim in num_head for parallel processing
         assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        self.d_out = d_out
         self.num_head = num_heads
         self.head_dim = d_out // num_heads
-        self.d_out = d_out
+
         self.q = nn.Linear(d_in, d_out, bias=bias)
         self.k = nn.Linear(d_in, d_out, bias=bias)
         self.v = nn.Linear(d_in, d_out, bias=bias)
-        self.dropout = nn.Dropout(dropout)
-
         # linear layer to combine heads output
-        self.out_proj = nn.Linear(d_out, d_out, bias=bias)
+        self.out_proj = nn.Linear(d_out, d_out)
+        self.dropout = nn.Dropout(dropout)
 
         # declaration for attention calculation, defining it as register_buffer so that it moves to \
         # model current device
@@ -28,8 +25,8 @@ class MultiheadAttention(nn.Module):
 
     def forward(self, x):
         b, token_len, d_in = x.shape
-        query = self.q(x)
         key = self.k(x)
+        query = self.q(x)
         val = self.v(x)
 
         # converting into MHA dim
